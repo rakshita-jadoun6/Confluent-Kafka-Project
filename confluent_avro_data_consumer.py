@@ -1,18 +1,21 @@
+import os
 import threading
+
+from dotenv import load_dotenv
 from confluent_kafka import DeserializingConsumer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.serialization import StringDeserializer
 
-
+load_dotenv()  # loads variables from .env file
 
 # Define Kafka configuration
 kafka_config = {
-    'bootstrap.servers': 'pkc-921jm.us-east-2.aws.confluent.cloud:9092',
+    'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS'),
     'sasl.mechanisms': 'PLAIN',
     'security.protocol': 'SASL_SSL',
-    'sasl.username': 'KQULZEUVJSLTSAXM',
-    'sasl.password': 'oR4/mrjwplSy7TPpG6NuxYdlOnt5ZB8HSlp9dxiNcN1KPpMCxWm9VTHLW7bHoOLd',
+    'sasl.username': os.getenv('KAFKA_SASL_USERNAME'),
+    'sasl.password': os.getenv('KAFKA_SASL_PASSWORD'),
     'group.id': 'group1',
     'auto.offset.reset': 'earliest'
 }
@@ -21,12 +24,12 @@ kafka_config = {
 
 # Create a Schema Registry client
 schema_registry_client = SchemaRegistryClient({
-  'url': 'https://psrc-pgpdo.us-east-2.aws.confluent.cloud',
-  'basic.auth.user.info': '{}:{}'.format('7FO72IO6JDX5USUL', 'AvhN1QV7jzR7GoTAXuZtCE88KYYsAmJwqNzGP4DoBxRELgwwdqgX8ZzMypekrLb0')
+  'url': os.getenv('SCHEMA_REGISTRY_URL'),
+  'basic.auth.user.info': '{}:{}'.format(os.getenv('SCHEMA_REGISTRY_API_KEY'), os.getenv('SCHEMA_REGISTRY_API_SECRET'))
 })
 
 # Fetch the latest Avro schema for the value
-subject_name = 'retail_data_test-value'
+subject_name = os.getenv('SUBJECT_NAME')
 schema_str = schema_registry_client.get_latest_version(subject_name).schema.schema_str
 
 # Create Avro Deserializer for the value
@@ -49,7 +52,7 @@ consumer = DeserializingConsumer({
 })
 
 # Subscribe to the 'retail_data' topic
-consumer.subscribe(['retail_data_test'])
+consumer.subscribe([os.getenv('TOPIC')])
 
 #Continually read messages from Kafka
 try:

@@ -1,3 +1,4 @@
+import os
 import datetime
 import threading
 from decimal import *
@@ -5,12 +6,14 @@ from time import sleep
 from uuid import uuid4, UUID
 import time
 
+from dotenv import load_dotenv
 from confluent_kafka import SerializingProducer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import StringSerializer
 import pandas as pd
 
+load_dotenv()  # loads variables from .env file
 
 def delivery_report(err, msg):
     """
@@ -38,21 +41,21 @@ def delivery_report(err, msg):
 
 # Define Kafka configuration
 kafka_config = {
-    'bootstrap.servers': 'pkc-921jm.us-east-2.aws.confluent.cloud:9092',
+    'bootstrap.servers': os.getenv('KAFKA_BOOTSTRAP_SERVERS'),
     'sasl.mechanisms': 'PLAIN',
     'security.protocol': 'SASL_SSL',
-    'sasl.username': 'KQULZEUVJSLTSAXM',
-    'sasl.password': 'oR4/mrjwplSy7TPpG6NuxYdlOnt5ZB8HSlp9dxiNcN1KPpMCxWm9VTHLW7bHoOLd'
+    'sasl.username': os.getenv('KAFKA_SASL_USERNAME'),
+    'sasl.password': os.getenv('KAFKA_SASL_PASSWORD')
 }
 
 # Create a Schema Registry client
 schema_registry_client = SchemaRegistryClient({
-  'url': 'https://psrc-pgpdo.us-east-2.aws.confluent.cloud',
-  'basic.auth.user.info': '{}:{}'.format('7FO72IO6JDX5USUL', 'AvhN1QV7jzR7GoTAXuZtCE88KYYsAmJwqNzGP4DoBxRELgwwdqgX8ZzMypekrLb0')
+  'url': os.getenv('SCHEMA_REGISTRY_URL'),
+  'basic.auth.user.info': '{}:{}'.format(os.getenv('SCHEMA_REGISTRY_API_KEY'), os.getenv('SCHEMA_REGISTRY_API_SECRET'))
 })
 
 # Fetch the latest Avro schema for the value
-subject_name = 'retail_data_test-value'
+subject_name = os.getenv('SUBJECT_NAME')
 schema_str = schema_registry_client.get_latest_version(subject_name).schema.schema_str
 
 # Create Avro Serializer for the value
@@ -83,7 +86,7 @@ for index, row in df.iterrows():
     value = row.to_dict()
     # print(value)
     # Produce to Kafka
-    producer.produce(topic='retail_data_test', key=str(index), value=value, on_delivery=delivery_report)
+    producer.produce(topic=os.getenv('TOPIC'), key=str(index), value=value, on_delivery=delivery_report)
     producer.flush()
     time.sleep(2)
     #break
